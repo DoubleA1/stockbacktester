@@ -67,9 +67,20 @@ def get_sp500_tickers() -> dict:
     Try to fetch the live current S&P 500 list from Wikipedia.
     Returns {ticker: company_name}. Falls back to FALLBACK_TICKERS on failure.
     """
+    url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
     try:
         import pandas as pd
-        tables = pd.read_html("https://en.wikipedia.org/wiki/List_of_S%26P_500_companies")
+        from io import StringIO
+        from urllib.request import Request, urlopen
+
+        # Wikipedia returns HTTP 403 to bare programmatic requests (no browser
+        # User-Agent), which was silently forcing the fallback list. Fetch the
+        # page ourselves with a normal User-Agent header, then parse the HTML.
+        req = Request(url, headers={"User-Agent": "Mozilla/5.0 (compatible; stockbacktester/1.0)"})
+        with urlopen(req, timeout=30) as resp:
+            html = resp.read().decode("utf-8")
+        tables = pd.read_html(StringIO(html))
+
         df = tables[0]
         tickers = {}
         for _, row in df.iterrows():
@@ -82,7 +93,7 @@ def get_sp500_tickers() -> dict:
         logger.info(f"Fetched {len(tickers)} live S&P 500 tickers from Wikipedia.")
         return tickers
     except Exception as e:
-        logger.warning(f"Could not fetch live S&P 500 list ({e}). Using fallback snapshot of {len(FALLBACK_TICKERS)} tickers instead.")
+        logger.warning(f"Could not fetch live S&P 500 list ({type(e).__name__}: {e}). Using fallback snapshot of {len(FALLBACK_TICKERS)} tickers instead.")
         return dict(FALLBACK_TICKERS)
 
 
