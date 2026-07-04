@@ -1,0 +1,19 @@
+[Unit]
+Description=Stock Backtester (FastAPI)
+# Wait until the network is actually up before starting.
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# --- EDIT THESE TWO LINES: replace "pi" with your Raspberry Pi username ---
+User=pi
+WorkingDirectory=/home/pi/stockbacktester/backend
+ExecStart=/home/pi/stockbacktester/.venv/bin/uvicorn app:app --host 127.0.0.1 --port 8000
+# Bind to 127.0.0.1 (localhost) on purpose: only the Cloudflare tunnel,
+# running on this same Pi, needs to reach it. Nothing is exposed on your LAN.
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

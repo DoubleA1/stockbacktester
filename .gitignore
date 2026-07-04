@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+backend/data/market.db
+data_pipeline/pipeline.log
+.DS_Store
+*.egg-info/

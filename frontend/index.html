@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Backtester</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/style.css">
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark">▲</span>
+    <span class="brand-name">Backtester</span>
+  </div>
+
+  <div class="search-wrap">
+    <input id="search-input" type="text" placeholder="Search ticker or company name (e.g. AAPL, Apple)" autocomplete="off">
+    <div id="search-results" class="search-results hidden"></div>
+  </div>
+
+  <div class="chip-row" id="active-tickers"></div>
+</header>
+
+<nav class="jumpnav" id="jumpnav">
+  <a href="#section-chart" data-section="section-chart" class="active">Chart</a>
+  <a href="#section-metrics" data-section="section-metrics">Metrics</a>
+  <a href="#section-backtest" data-section="section-backtest">Backtest</a>
+  <a href="#section-optimizer" data-section="section-optimizer">Portfolio Optimizer</a>
+</nav>
+
+<main id="app">
+
+  <!-- CHART + MOVING AVERAGES MODULE -->
+  <section id="section-chart" class="module">
+    <div class="module-header">
+      <h2>Price Chart</h2>
+      <div class="range-selector" id="chart-range">
+        <button data-range="5D">5D</button>
+        <button data-range="1M">1M</button>
+        <button data-range="3M">3M</button>
+        <button data-range="YTD">YTD</button>
+        <button data-range="1Y" class="active">1Y</button>
+        <button data-range="5Y">5Y</button>
+        <button data-range="ALL">All</button>
+      </div>
+    </div>
+
+    <div class="chart-controls-row">
+      <label class="switch-field">
+        <span class="switch">
+          <input type="checkbox" id="compare-mode-toggle" checked>
+          <span class="switch-slider"></span>
+        </span>
+        <span class="switch-label">Compare all stocks (% change)</span>
+      </label>
+      <label class="field-label compact" id="focus-stock-field">Single stock
+        <select id="focus-ticker-select"></select>
+      </label>
+      <div class="view-toggle" id="view-toggle">
+        <button data-view="line" class="active">Line</button>
+        <button data-view="candlestick">Candlestick</button>
+      </div>
+    </div>
+
+    <div class="chart-layout">
+      <div class="chart-main">
+        <div id="main-chart" class="chart-box chart-box-compact"></div>
+        <div id="main-chart-empty" class="empty-state">
+          <p>No stocks selected yet.</p>
+          <p class="empty-sub">Use the search bar above to find a ticker or company name.</p>
+        </div>
+      </div>
+
+      <div id="chart-sidebar" class="chart-sidebar hidden">
+        <div class="sidebar-module sidebar-stocks">
+          <h3>Stocks</h3>
+          <div id="stocks-list" class="stocks-list"></div>
+          <p class="sidebar-empty" id="stocks-list-empty">No stocks added yet.</p>
+        </div>
+        <div class="sidebar-module sidebar-ma">
+          <h3>Moving Averages <span class="i-icon-inline" data-field="moving_average"></span></h3>
+          <div class="ma-select-all-row">
+            <button id="ma-select-all-btn" type="button">Select all</button>
+            <button id="ma-select-none-btn" type="button">Deselect all</button>
+          </div>
+          <div id="ma-checkbox-list" class="ma-checkbox-list"></div>
+          <div class="ma-add-row">
+            <input id="ma-add-input" type="number" min="2" max="500" placeholder="e.g. 100">
+            <button id="ma-add-btn" class="btn-secondary">+ Add</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- METRICS MODULE -->
+  <section id="section-metrics" class="module">
+    <div class="module-header">
+      <h2>Performance Metrics</h2>
+      <div class="range-selector" id="metrics-range">
+        <button data-range="5D">5D</button>
+        <button data-range="1M">1M</button>
+        <button data-range="3M">3M</button>
+        <button data-range="YTD">YTD</button>
+        <button data-range="1Y" class="active">1Y</button>
+        <button data-range="5Y">5Y</button>
+        <button data-range="ALL">All</button>
+      </div>
+    </div>
+    <p class="hint">Benchmark for Beta / Alpha / Correlation: <strong>SPY</strong> (S&amp;P 500 ETF). Hover the <span class="i-icon-inline" data-field="example"></span> next to any metric for a plain-English explanation.</p>
+    <div id="metrics-table-wrap"></div>
+    <div id="metrics-empty" class="empty-state">
+      <p>Add stocks from the search bar above to see their metrics here.</p>
+    </div>
+  </section>
+
+  <!-- BACKTEST MODULE -->
+  <section id="section-backtest" class="module">
+    <div class="module-header"><h2>Strategy Backtest</h2></div>
+    <p class="hint">Test a rule-based trading strategy against simply buying and holding the stock, over the same period.</p>
+
+    <div class="backtest-form">
+      <label class="field-label">Stock
+        <select id="bt-ticker-select"></select>
+      </label>
+      <label class="field-label">Strategy
+        <select id="bt-strategy-select"></select>
+      </label>
+      <label class="field-label">Test period
+        <select id="bt-range-select">
+          <option value="1Y">1 Year</option>
+          <option value="3M">3 Months</option>
+          <option value="YTD">Year to date</option>
+          <option value="5Y" selected>5 Years</option>
+          <option value="ALL">All available history</option>
+        </select>
+      </label>
+      <div id="bt-params" class="bt-params"></div>
+      <label class="field-label checkbox-label">
+        <input type="checkbox" id="bt-dividend-reinvest" checked>
+        Reinvest dividends <span class="i-icon-inline" data-field="dividend_reinvest"></span>
+      </label>
+      <label class="field-label">Transaction cost per trade
+        <span class="input-with-suffix">
+          <input type="number" id="bt-txn-cost" value="5" min="0" max="100">
+          <span class="suffix">bps <span class="i-icon-inline" data-field="transaction_cost"></span></span>
+        </span>
+      </label>
+      <label class="field-label">Starting capital
+        <span class="input-with-suffix">
+          <span class="prefix">$</span>
+          <input type="number" id="bt-capital" value="10000" min="100" step="100">
+        </span>
+      </label>
+      <button id="bt-run-btn" class="btn-primary">Run Backtest</button>
+    </div>
+    <p class="strategy-description" id="bt-strategy-desc"></p>
+
+    <div id="bt-results" class="hidden">
+      <div class="module-subheader"><h3>Results</h3></div>
+      <div id="bt-chart" class="chart-box chart-box-compact"></div>
+      <div id="bt-comparison-table-wrap"></div>
+      <h4 class="subheading">Trade Log</h4>
+      <div id="bt-trade-log-wrap"></div>
+    </div>
+  </section>
+
+  <!-- OPTIMIZER MODULE -->
+  <section id="section-optimizer" class="module">
+    <div class="module-header"><h2>Portfolio Optimizer</h2></div>
+    <p class="hint">Pick a basket of stocks (2 or more) and find the mix of weights that minimizes risk or maximizes risk-adjusted return, based on their historical behavior together.</p>
+    <div class="optimizer-form">
+      <div class="opt-basket-wrap">
+        <span class="field-label">Basket</span>
+        <div id="opt-basket-chips" class="chip-row"></div>
+        <input id="opt-add-input" type="text" placeholder="Search to add a stock to the basket..." autocomplete="off">
+        <div id="opt-search-results" class="search-results hidden"></div>
+      </div>
+      <label class="field-label">History used
+        <select id="opt-range-select">
+          <option value="1Y">1 Year</option>
+          <option value="3Y">3 Years</option>
+          <option value="5Y" selected>5 Years</option>
+          <option value="ALL">All available history</option>
+        </select>
+      </label>
+      <button id="opt-run-btn" class="btn-primary">Optimize Portfolio</button>
+    </div>
+
+    <div id="opt-results" class="hidden">
+      <div class="module-subheader"><h3>Efficient Frontier</h3></div>
+      <p class="hint">Each dot on the curve is the lowest possible risk for that level of expected return, given your basket. Individual stocks are plotted for reference.</p>
+      <div id="opt-frontier-chart" class="chart-box chart-box-compact"></div>
+
+      <div class="opt-portfolios">
+        <div class="opt-portfolio-card">
+          <h4>Minimum Risk Portfolio</h4>
+          <p class="opt-stat"><span class="i-icon" data-metric="cagr"></span>Expected annual return: <strong id="opt-minvar-return"></strong></p>
+          <p class="opt-stat"><span class="i-icon" data-metric="volatility"></span>Expected volatility: <strong id="opt-minvar-vol"></strong></p>
+          <div id="opt-minvar-weights" class="weights-table"></div>
+          <p class="opt-explain" id="opt-minvar-explain"></p>
+        </div>
+        <div class="opt-portfolio-card highlight">
+          <h4>Best Risk-Adjusted Portfolio (Max Sharpe)</h4>
+          <p class="opt-stat"><span class="i-icon" data-metric="cagr"></span>Expected annual return: <strong id="opt-maxsharpe-return"></strong></p>
+          <p class="opt-stat"><span class="i-icon" data-metric="volatility"></span>Expected volatility: <strong id="opt-maxsharpe-vol"></strong></p>
+          <p class="opt-stat"><span class="i-icon" data-metric="sharpe"></span>Sharpe ratio: <strong id="opt-maxsharpe-sharpe"></strong></p>
+          <div id="opt-maxsharpe-weights" class="weights-table"></div>
+          <p class="opt-explain" id="opt-maxsharpe-explain"></p>
+        </div>
+      </div>
+
+      <h4 class="subheading">Correlation Matrix <span class="i-icon" data-metric="correlation"></span></h4>
+      <div id="opt-correlation-wrap"></div>
+    </div>
+  </section>
+
+</main>
+
+<div id="tooltip-box" class="tooltip-box hidden"></div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
